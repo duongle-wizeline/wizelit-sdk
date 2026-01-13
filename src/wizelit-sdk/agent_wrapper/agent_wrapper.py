@@ -11,7 +11,6 @@ from agent_wrapper.job import Job
 
 if TYPE_CHECKING:
     from database import DatabaseManager
-    from agent_wrapper.streaming import LogStreamer
 
 # Reusable framework constants
 LLM_FRAMEWORK_CREWAI = "crewai"
@@ -77,7 +76,7 @@ class WizelitAgentWrapper:
         if enable_streaming:
             redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
             try:
-                from core.wizelit_agent_wrapper.streaming import LogStreamer
+                from agent_wrapper.streaming import LogStreamer
                 self._log_streamer = LogStreamer(redis_url)
                 print(f"Log streaming enabled via Redis: {redis_url}")
             except ImportError:
