@@ -589,7 +589,7 @@ wheels = [
 
 [[package]]
 name = "wizelit-sdk"
-version = "0.1.4"
+version = "0.1.6"
 source = { editable = "." }
 
 [package.optional-dependencies]
