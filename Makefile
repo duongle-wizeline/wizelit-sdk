@@ -173,6 +173,25 @@ release: check-version
 		echo "Error: Tag v$(VERSION) already exists!"; \
 		exit 1; \
 	fi
+	@echo "Checking for uncommitted changes in src/..."
+	@changed_files=$$(git diff --name-only src/ 2>/dev/null; git diff --cached --name-only src/ 2>/dev/null | grep -v "^$$"); \
+	if [ -z "$$changed_files" ]; then \
+		echo "✓ No uncommitted changes in src/"; \
+	else \
+		echo ""; \
+		echo "⚠️  WARNING: There are uncommitted changes in src/:"; \
+		echo ""; \
+		echo "$$changed_files" | sort -u; \
+		echo ""; \
+		echo "Do you want to proceed with the release? (y/N)"; \
+		read -r confirm; \
+		if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+			echo "Release cancelled."; \
+			exit 1; \
+		fi; \
+		echo "✓ Proceeding with release..."; \
+	fi
+	@echo ""
 	@echo "Steps to be performed:"
 	@echo "  1. Update version in pyproject.toml to $(VERSION)"
 	@echo "  2. Run tests and linting"
@@ -190,6 +209,10 @@ release: check-version
 	@echo ""
 	@echo "Committing changes..."
 	@git add pyproject.toml
+	@if [ -f uv.lock ] && ! git diff --quiet uv.lock 2>/dev/null; then \
+		echo "✓ uv.lock has changed, adding to commit..."; \
+		git add uv.lock; \
+	fi
 	@if git diff --cached --quiet; then \
 		echo "✓ No changes to commit (version already set)"; \
 	else \
