@@ -7,10 +7,10 @@ from typing import Callable, Any, Optional, Literal, Dict, TYPE_CHECKING
 from contextvars import ContextVar
 from fastmcp import FastMCP, Context
 from fastmcp.dependencies import CurrentContext
-from agent_wrapper.job import Job
+from wizelit_sdk.agent_wrapper.job import Job
 
 if TYPE_CHECKING:
-    from database import DatabaseManager
+    from wizelit_sdk.database import DatabaseManager
 
 # Reusable framework constants
 LLM_FRAMEWORK_CREWAI = "crewai"
@@ -76,7 +76,7 @@ class WizelitAgentWrapper:
         if enable_streaming:
             redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
             try:
-                from agent_wrapper.streaming import LogStreamer
+                from .streaming import LogStreamer
                 self._log_streamer = LogStreamer(redis_url)
                 print(f"Log streaming enabled via Redis: {redis_url}")
             except ImportError:
@@ -281,7 +281,7 @@ class WizelitAgentWrapper:
                     return_annotation = func_sig.return_annotation
                     # Check if return type is str (handle both direct str and Optional[str])
                     is_str_return = (
-                        return_annotation == str or
+                        return_annotation is str or
                         (hasattr(return_annotation, '__origin__') and return_annotation.__origin__ is str) or
                         (hasattr(return_annotation, '__args__') and str in getattr(return_annotation, '__args__', []))
                     )

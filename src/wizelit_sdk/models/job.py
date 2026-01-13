@@ -7,7 +7,8 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 
-from models.base import BaseModel
+from wizelit_sdk.models.base import BaseModel
+
 
 
 class JobStatus(str, enum.Enum):

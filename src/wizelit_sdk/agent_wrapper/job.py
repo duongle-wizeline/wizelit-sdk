@@ -10,8 +10,8 @@ from typing import List, Optional, Awaitable, Any, TYPE_CHECKING
 from fastmcp import Context
 
 if TYPE_CHECKING:
-    from database import DatabaseManager
-    from agent_wrapper.streaming import LogStreamer
+    from wizelit_sdk.database import DatabaseManager
+    from wizelit_sdk.agent_wrapper.streaming import LogStreamer
 
 
 class MemoryLogHandler(logging.Handler):
@@ -84,7 +84,7 @@ class DatabaseLogHandler(logging.Handler):
                 loop.create_task(write_log())
             except RuntimeError:
                 # No event loop running - log warning
-                print(f"Warning: No event loop running, cannot write log to database", flush=True)
+                print("Warning: No event loop running, cannot write log to database", flush=True)
         except Exception:
             # Prevent exceptions in logging handler from breaking execution
             self.handleError(record)
@@ -124,7 +124,7 @@ class StreamingLogHandler(logging.Handler):
                 loop.create_task(publish_log())
             except RuntimeError:
                 # No event loop running - log warning
-                print(f"Warning: No event loop running, cannot stream log to Redis", flush=True)
+                print("Warning: No event loop running, cannot stream log to Redis", flush=True)
         except Exception as e:
             # Prevent exceptions in logging handler from breaking execution
             print(f"Error in StreamingLogHandler.emit: {e}", flush=True)
@@ -206,7 +206,7 @@ class Job:
                 loop = asyncio.get_running_loop()
                 loop.create_task(publish_status())
             except RuntimeError:
-                print(f"Warning: No event loop running, cannot publish status change to Redis", flush=True)
+                print("Warning: No event loop running, cannot publish status change to Redis", flush=True)
 
     @property
     def result(self) -> Optional[str | dict[str, Any]]:

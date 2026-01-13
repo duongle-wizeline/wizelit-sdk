@@ -10,7 +10,7 @@ from typing import AsyncGenerator
 import logging
 import os
 
-from models import BaseModel
+from wizelit_sdk.models.base import BaseModel
 
 logger = logging.getLogger(__name__)
 
