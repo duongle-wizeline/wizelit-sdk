@@ -177,8 +177,12 @@ release: check-version
 	@echo ""
 	@echo "Committing changes..."
 	@git add pyproject.toml
-	@git commit -m "Release version $(VERSION)" || exit 1
-	@echo "✓ Changes committed"
+	@if git diff --cached --quiet; then \
+		echo "✓ No changes to commit (version already set)"; \
+	else \
+		git commit -m "Release version $(VERSION)" || exit 1; \
+		echo "✓ Changes committed"; \
+	fi
 	@echo ""
 	@echo "Creating tag v$(VERSION)..."
 	@git tag -a v$(VERSION) -m "Release version $(VERSION)"
