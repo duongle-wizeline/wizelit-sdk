@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wizelit-sdk"
-version = "0.1.0"
+version = "0.0.2"
 description = "Wizelit Agent Wrapper - Internal utility package"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -26,7 +26,13 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/wizelit_agent_wrapper"]
+# Packages will be mapped via custom build hook
+# All packages under src/ will be automatically mapped to wizelit_sdk namespace
+# The hook dynamically discovers and maps all packages using force_include
+# No packages listed here - the hook handles everything
+
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
 
 [tool.black]
 line-length = 88
