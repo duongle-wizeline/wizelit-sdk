@@ -19,3 +19,14 @@ def greet(name: str = "World") -> str:
     """
     return f"Hello, {name}!"
 
+def greet_many(names: list[str]) -> list[str]:
+    """
+    Generate a greeting message for each name.
+    
+    Args:
+        names: List of names to greet.
+        
+    Returns:
+        A list of greeting strings.
+    """
+    return [f"Hello, {name}!" for name in names]

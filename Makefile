@@ -12,7 +12,7 @@ help:
 	@echo "  make check          - Run tests and linting"
 	@echo "  make clean          - Remove build artifacts"
 	@echo "  make build          - Build package"
-	@echo "  make release VERSION=x.x.x - Create new release (updates version, tags, pushes)"
+	@echo "  make release x.x.x - Create new release (updates version, tags, pushes)"
 	@echo "  make tag VERSION=x.x.x - Create and push git tag"
 	@echo "  make push           - Push code and tags to remote"
 	@echo "  make publish        - Publish package (run checks, build, push to remote)"
@@ -29,6 +29,19 @@ setup:
 	@echo ""
 	@echo "Then run: make install-dev"
 
+# Extract version from command line or VERSION variable
+# Supports: make release 0.1.0 or make release VERSION=0.1.0
+# VERSION variable takes precedence if both are provided
+VERSION_ARG := $(word 2, $(MAKECMDGOALS))
+ifndef VERSION
+  ifdef VERSION_ARG
+    # Version provided as positional argument (make release 0.1.0)
+    VERSION := $(VERSION_ARG)
+    # Prevent Make from trying to build the version as a target
+    $(eval $(VERSION_ARG):;@:)
+  endif
+endif
+
 # Install package in production mode
 install:
 	@echo "Installing package..."
@@ -42,20 +55,20 @@ install-dev:
 # Run tests
 test:
 	@echo "Running tests..."
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 # Run code linting
 lint:
 	@echo "Running linting checks..."
-	ruff check src/
+	uv run ruff check src/
 	@echo "Running type checks..."
-	-mypy src/ 2>/dev/null || echo "mypy not installed, skipping type checks"
+	-uv run mypy src/ 2>/dev/null || echo "mypy not installed, skipping type checks"
 
 # Format code
 format:
 	@echo "Formatting code..."
-	black src/ tests/
-	ruff check --fix src/
+	uv run black src/ tests/
+	uv run ruff check --fix src/
 
 # Run all checks
 check: test lint
@@ -82,7 +95,7 @@ build: clean
 # Check if VERSION is provided
 check-version:
 ifndef VERSION
-	$(error VERSION is not set. Use: make release VERSION=0.1.0 or make tag VERSION=0.1.0)
+	$(error VERSION is not set. Use: make release 0.1.0 or make release VERSION=0.1.0)
 endif
 
 # Create git tag
