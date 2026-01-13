@@ -1,7 +1,7 @@
 """Tests for utility functions."""
 
 import pytest
-from wizelit_agent_wrapper import greet
+from wizelit_sdk.wizelit_agent_wrapper import greet
 
 
 def test_greet_with_name():
