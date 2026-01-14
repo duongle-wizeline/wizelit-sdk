@@ -29,7 +29,6 @@ dev = [
     "build>=1.0.0",
 ]
 
-[project.optional-dependencies]
 streaming = [
     "redis>=4.5.0",
 ]
