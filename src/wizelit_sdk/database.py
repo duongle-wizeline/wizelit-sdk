@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import (
     AsyncEngine
 )
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 import logging
 import os
 
@@ -32,15 +32,23 @@ class DatabaseManager:
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self):
+    def __init__(
+        self,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[str] = None,
+        database: Optional[str] = None,
+    ):
         if self._initialized:
             return
 
-        USERNAME = os.getenv("POSTGRES_USER")
-        PASSWORD = os.getenv("POSTGRES_PASSWORD")
-        HOST = os.getenv("POSTGRES_HOST")
-        PORT = os.getenv("POSTGRES_PORT")
-        DATABASE = os.getenv("POSTGRES_DB")
+        # Use provided values or fall back to environment variables
+        USERNAME = username or os.getenv("POSTGRES_USER")
+        PASSWORD = password or os.getenv("POSTGRES_PASSWORD")
+        HOST = host or os.getenv("POSTGRES_HOST")
+        PORT = port or os.getenv("POSTGRES_PORT")
+        DATABASE = database or os.getenv("POSTGRES_DB")
         self.DATABASE_URL = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
 
         # Create async engine
