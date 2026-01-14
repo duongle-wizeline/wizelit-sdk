@@ -12,9 +12,13 @@ authors = [
     {name = "Your Name", email = "your.email@company.com"}
 ]
 dependencies = [
-    # Add your dependencies here
-    # "requests>=2.28.0",
-    # "pydantic>=2.0.0",
+    "fastmcp>=0.1.0",
+    "SQLAlchemy>=1.4",
+    "asyncpg>=0.26.0",
+    # streaming support (optional)
+    "redis>=4.5.0",
+    # typing helpers
+    "typing-extensions>=4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +27,11 @@ dev = [
     "black>=22.0.0",
     "ruff>=0.1.0",
     "build>=1.0.0",
+]
+
+[project.optional-dependencies]
+streaming = [
+    "redis>=4.5.0",
 ]
 
 [tool.hatch.build.targets.wheel]
