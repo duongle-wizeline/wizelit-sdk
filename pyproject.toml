@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wizelit-sdk"
-version = "0.1.20"
+version = "0.1.21"
 description = "Wizelit Agent Wrapper - Internal utility package"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [
     {name = "Your Name", email = "your.email@company.com"}
 ]
@@ -38,9 +38,9 @@ packages = ["src/wizelit_sdk"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py310']
 
 [tool.ruff]
 line-length = 88
-target-version = "py38"
+target-version = "py310"
 
