@@ -191,6 +191,7 @@ class Job:
         self._status = value
         # Publish status change to Redis if streamer is available
         if self._log_streamer:
+            print(f"[DEBUG] Publishing status change for job {self._id}: {value}", flush=True)
             async def publish_status():
                 try:
                     await self._log_streamer.publish_status_change(
@@ -199,6 +200,7 @@ class Job:
                         result=self._result,
                         error=self._error
                     )
+                    print(f"[DEBUG] Status change published successfully for job {self._id}", flush=True)
                 except Exception as e:
                     print(f"Error publishing status change: {e}", flush=True)
 
@@ -207,6 +209,8 @@ class Job:
                 loop.create_task(publish_status())
             except RuntimeError:
                 print("Warning: No event loop running, cannot publish status change to Redis", flush=True)
+        else:
+            print(f"[DEBUG] No log_streamer available for job {self._id}, skipping Redis publish", flush=True)
 
     @property
     def result(self) -> Optional[str | dict[str, Any]]:
@@ -262,7 +266,7 @@ class Job:
         import asyncio
 
         async def _runner() -> Any:
-            self._status = "running"
+            self.status = "running"
             # Persist initial job state
             await self.persist_to_db()
 
@@ -271,15 +275,15 @@ class Job:
                 result = await coro
                 # Store string results for convenience
                 if isinstance(result, str|dict):
-                    self._result = result
+                    self.result = result
                 if self._status == "running":
-                    self._status = "completed"
+                    self.status = "completed"
                     # Persist completion state
                     await self.persist_to_db()
                 return result
             except Exception as e:  # noqa: BLE001 - we deliberately capture all
-                self._error = str(e)
-                self._status = "failed"
+                self.error = str(e)
+                self.status = "failed"
                 # Persist failure state
                 await self.persist_to_db()
                 # Also log the error so it shows up in logs UI

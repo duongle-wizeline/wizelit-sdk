@@ -4,17 +4,21 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wizelit-sdk"
-version = "0.1.20"
+version = "0.1.21"
 description = "Wizelit Agent Wrapper - Internal utility package"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [
     {name = "Your Name", email = "your.email@company.com"}
 ]
 dependencies = [
-    # Add your dependencies here
-    # "requests>=2.28.0",
-    # "pydantic>=2.0.0",
+    "fastmcp>=0.1.0",
+    "SQLAlchemy>=1.4",
+    "asyncpg>=0.26.0",
+    # streaming support (optional)
+    "redis>=4.5.0",
+    # typing helpers
+    "typing-extensions>=4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -25,14 +29,18 @@ dev = [
     "build>=1.0.0",
 ]
 
+streaming = [
+    "redis>=4.5.0",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/wizelit_sdk"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py310']
 
 [tool.ruff]
 line-length = 88
-target-version = "py38"
+target-version = "py310"
 
