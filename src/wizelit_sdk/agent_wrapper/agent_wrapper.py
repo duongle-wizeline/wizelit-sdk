@@ -11,7 +11,6 @@ from wizelit_sdk.agent_wrapper.job import Job
 
 if TYPE_CHECKING:
     from wizelit_sdk.database import DatabaseManager
-    from wizelit_sdk.agent_wrapper.streaming import LogStreamer
 
 # Reusable framework constants
 LLM_FRAMEWORK_CREWAI = "crewai"
@@ -344,7 +343,7 @@ class WizelitAgentWrapper:
                     return_annotation = func_sig.return_annotation
                     # Check if return type is str (handle both direct str and Optional[str])
                     is_str_return = (
-                        return_annotation == str
+                        return_annotation is str
                         or (
                             hasattr(return_annotation, "__origin__")
                             and return_annotation.__origin__ is str
