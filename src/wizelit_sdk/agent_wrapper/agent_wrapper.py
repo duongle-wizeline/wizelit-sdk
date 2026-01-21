@@ -293,7 +293,8 @@ class WizelitAgentWrapper:
 
             except Exception as e:
                 # Mark job as failed
-                job.status = "failed"
+                if job is not None:
+                    job.status = "failed"
 
                 # Stream error information
                 await ctx.report_progress(
