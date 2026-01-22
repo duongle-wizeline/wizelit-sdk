@@ -1,4 +1,4 @@
-.PHONY: help setup install install-dev test lint format clean build release tag push publish check-version
+.PHONY: help setup install install-dev test lint format clean build release tag push publish publish-pypi publish-artifactory check-version
 
 # Default target
 help:
@@ -16,6 +16,8 @@ help:
 	@echo "  make tag VERSION=x.x.x - Create and push git tag"
 	@echo "  make push           - Push code and tags to remote"
 	@echo "  make publish        - Publish package (run checks, build, push to remote)"
+	@echo "  make publish-pypi   - Publish package to public PyPI"
+	@echo "  make publish-artifactory - Publish package to private Artifactory/PyPI"
 	@echo "  make version        - Show current version"
 	@echo "  make versions       - List all available versions"
 
@@ -249,6 +251,74 @@ release: check-version
 	fi; \
 	echo "Team members can now install with:"; \
 	echo "  uv pip install git+ssh://git@github.com/$$repo_path.git@v$(VERSION)"
+
+# Publish to public PyPI
+publish-pypi:
+	@echo "=== Publishing to Public PyPI ==="
+	@echo ""
+	@echo "Step 1: Checking git status..."
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: You have uncommitted changes!"; \
+		echo "Please commit or stash your changes before publishing."; \
+		git status --short; \
+		exit 1; \
+	fi
+	@echo "✓ Working directory is clean"
+	@echo ""
+	@echo "Step 2: Running tests and linting..."
+	@make check || exit 1
+	@echo ""
+	@echo "Step 3: Building package..."
+	@make build || exit 1
+	@echo ""
+	@echo "Step 4: Uploading to PyPI..."
+	@python -m pip install twine 2>/dev/null || echo "twine required"
+	@python -m twine upload dist/* --non-interactive || exit 1
+	@echo ""
+	@echo "=== PyPI Upload Complete! ==="
+	@echo ""
+	@current_version=$$(grep "^version = " pyproject.toml | sed 's/version = //g' | tr -d '"'); \
+	echo "✓ Package v$$current_version published to PyPI!"; \
+	echo ""; \
+	echo "Team members can now install with:"; \
+	echo "  pip install wizelit-sdk==$$current_version"; \
+	echo "  or simply: pip install wizelit-sdk"
+
+# Publish to private Artifactory/PyPI
+publish-artifactory:
+	@echo "=== Publishing to Private Artifactory ==="
+	@echo ""
+	@echo "Step 1: Checking git status..."
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: You have uncommitted changes!"; \
+		echo "Please commit or stash your changes before publishing."; \
+		git status --short; \
+		exit 1; \
+	fi
+	@echo "✓ Working directory is clean"
+	@echo ""
+	@echo "Step 2: Running tests and linting..."
+	@make check || exit 1
+	@echo ""
+	@echo "Step 3: Building package..."
+	@make build || exit 1
+	@echo ""
+	@echo "Step 4: Uploading to Artifactory..."
+	@if [ -z "$${ARTIFACTORY_REPO_URL}" ]; then \
+		echo "Error: ARTIFACTORY_REPO_URL environment variable not set!"; \
+		echo "Example: export ARTIFACTORY_REPO_URL=https://artifactory.company.com/artifactory/api/pypi/pypi"; \
+		exit 1; \
+	fi
+	@python -m pip install twine 2>/dev/null || echo "twine required"
+	@python -m twine upload -r artifactory dist/ --non-interactive || exit 1
+	@echo ""
+	@echo "=== Artifactory Upload Complete! ==="
+	@echo ""
+	@current_version=$$(grep "^version = " pyproject.toml | sed 's/version = //g' | tr -d '"'); \
+	echo "✓ Package v$$current_version published to Artifactory!"; \
+	echo ""; \
+	echo "Team members can now install with:"; \
+	echo "  pip install wizelit-sdk==$$current_version"
 
 # Show current version
 version:
