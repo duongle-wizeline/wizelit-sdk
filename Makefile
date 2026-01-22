@@ -91,7 +91,7 @@ clean:
 # Build package
 build: clean
 	@echo "Building package..."
-	python -m build
+	uv run python -m build
 	@echo "Build complete! Files in dist/"
 
 # Check if VERSION is provided
