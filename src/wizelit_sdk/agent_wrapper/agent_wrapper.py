@@ -34,7 +34,7 @@ class CurrentJob:
         return _current_job.get()
 
 
-class WizelitAgentWrapper:
+class WizelitAgent:
     """
     Main wrapper class that converts Python functions into MCP server tools.
     Built on top of fast-mcp with enhanced streaming and agent framework support.
@@ -87,7 +87,7 @@ class WizelitAgentWrapper:
                 print(f"Warning: Failed to initialize log streamer: {e}")
 
         print(
-            f"WizelitAgentWrapper initialized with name: {name}, transport: {transport}, host: {host}, port: {port}"
+            f"WizelitAgent initialized with name: {name}, transport: {transport}, host: {host}, port: {port}"
         )
 
     def ingest(
