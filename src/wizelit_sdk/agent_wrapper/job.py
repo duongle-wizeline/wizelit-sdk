@@ -10,8 +10,8 @@ from typing import List, Optional, Awaitable, Any, TYPE_CHECKING
 from fastmcp import Context
 
 if TYPE_CHECKING:
-    from wizelit_sdk.database import DatabaseManager
-    from wizelit_sdk.agent_wrapper.streaming import LogStreamer
+    from ..database import DatabaseManager
+    from .streaming import LogStreamer
 
 
 class MemoryLogHandler(logging.Handler):
@@ -60,7 +60,7 @@ class DatabaseLogHandler(logging.Handler):
         """
         try:
             # Import here to avoid circular dependency
-            from models.job import JobLogModel
+            from ..models.job import JobLogModel
             from datetime import datetime
 
             async def write_log():
@@ -274,7 +274,7 @@ class Job:
             try:
                 result = await coro
                 # Store string results for convenience
-                if isinstance(result, str|dict):
+                if isinstance(result, (str, dict)):
                     self.result = result
                 if self._status == "running":
                     self.status = "completed"
@@ -351,7 +351,7 @@ class Job:
             return
 
         try:
-            from models.job import JobModel
+            from ..models.job import JobModel
 
             async with self._db_manager.get_session() as session:
                 # Check if job already exists

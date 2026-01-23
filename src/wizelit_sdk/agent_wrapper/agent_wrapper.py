@@ -3,7 +3,7 @@ import asyncio
 import inspect
 import logging
 import os
-from typing import Callable, Any, Optional, Literal, Dict, TYPE_CHECKING
+from typing import Callable, Any, Optional, Literal, Dict, TYPE_CHECKING, Union
 from contextvars import ContextVar
 from fastmcp import FastMCP, Context
 from fastmcp.dependencies import CurrentContext
@@ -362,9 +362,10 @@ class WizelitAgent:
                 return result
 
             except Exception as e:
-                # Mark job as failed (only if job exists)
-                if job is not None:
-                    job.status = "failed"
+                # Mark job as failed when a job instance exists
+                active_job = job or _current_job.get()
+                if active_job is not None:
+                    active_job.status = "failed"
 
                 # Stream error information
                 await ctx.report_progress(
@@ -483,7 +484,7 @@ class WizelitAgent:
             return None
 
         try:
-            from models.job import JobModel
+            from wizelit_sdk.models.job import JobModel
             from sqlalchemy import select
 
             async with self._db_manager.get_session() as session:
@@ -532,7 +533,7 @@ class WizelitAgent:
             return None
 
         try:
-            from models.job import JobLogModel
+            from wizelit_sdk.models.job import JobLogModel
             from sqlalchemy import select
 
             async with self._db_manager.get_session() as session:
@@ -579,7 +580,7 @@ class WizelitAgent:
         return True
 
     def set_job_result(
-        self, job_id: str, result: Optional[str | dict[str, Any]]
+        self, job_id: str, result: Optional[Union[str, dict[str, Any]]]
     ) -> bool:
         """
         Set the result of a job by job_id.

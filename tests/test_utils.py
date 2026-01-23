@@ -1,23 +1,18 @@
-"""Tests for utility functions."""
+"""Public API tests for agent_wrapper."""
 
-import pytest
-from wizelit_sdk.agent_wrapper import greet
-
-
-def test_greet_with_name():
-    """Test greet function with a name."""
-    result = greet("Alice")
-    assert result == "Hello, Alice!"
+import wizelit_sdk.agent_wrapper as agent_wrapper
 
 
-def test_greet_default():
-    """Test greet function with default name."""
-    result = greet()
-    assert result == "Hello, World!"
+def test_agent_wrapper_public_api_is_minimal():
+    """Ensure placeholder utilities are not exposed via the public API."""
+    assert not hasattr(agent_wrapper, "greet")
+    assert not hasattr(agent_wrapper, "greet_many")
+    assert not hasattr(agent_wrapper, "greet_many3")
 
 
-def test_greet_empty_string():
-    """Test greet function with empty string."""
-    result = greet("")
-    assert result == "Hello, !"
+def test_agent_wrapper_exports_core_symbols():
+    """Ensure core classes remain publicly available."""
+    assert agent_wrapper.WizelitAgent is not None
+    assert agent_wrapper.Job is not None
+    assert agent_wrapper.LogStreamer is not None
 
