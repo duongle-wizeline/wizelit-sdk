@@ -483,7 +483,7 @@ class WizelitAgent:
             return None
 
         try:
-            from models.job import JobModel
+            from wizelit_sdk.models.job import JobModel
             from sqlalchemy import select
 
             async with self._db_manager.get_session() as session:
@@ -532,7 +532,7 @@ class WizelitAgent:
             return None
 
         try:
-            from models.job import JobLogModel
+            from wizelit_sdk.models.job import JobLogModel
             from sqlalchemy import select
 
             async with self._db_manager.get_session() as session:

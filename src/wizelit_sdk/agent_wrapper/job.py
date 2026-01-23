@@ -60,7 +60,7 @@ class DatabaseLogHandler(logging.Handler):
         """
         try:
             # Import here to avoid circular dependency
-            from models.job import JobLogModel
+            from wizelit_sdk.models.job import JobLogModel
             from datetime import datetime
 
             async def write_log():
@@ -351,7 +351,7 @@ class Job:
             return
 
         try:
-            from models.job import JobModel
+            from wizelit_sdk.models.job import JobModel
 
             async with self._db_manager.get_session() as session:
                 # Check if job already exists
