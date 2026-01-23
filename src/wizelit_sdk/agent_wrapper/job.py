@@ -6,7 +6,7 @@ import asyncio
 import uuid
 import time
 from datetime import datetime, UTC
-from typing import List, Optional, Awaitable, Any, TYPE_CHECKING
+from typing import List, Optional, Awaitable, Any, TYPE_CHECKING, Union
 from fastmcp import Context
 
 if TYPE_CHECKING:
@@ -274,7 +274,7 @@ class Job:
             try:
                 result = await coro
                 # Store string results for convenience
-                if isinstance(result, str|dict):
+                if isinstance(result, (str, dict)):
                     self.result = result
                 if self._status == "running":
                     self.status = "completed"
