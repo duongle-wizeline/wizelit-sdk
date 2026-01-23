@@ -35,6 +35,18 @@ from wizelit_agent_wrapper import your_module
 result = your_module.function()
 ```
 
+## Configuration
+
+The SDK reads database configuration from the hosting application's environment. Provide these variables in the consuming project (e.g., via your app's .env or deployment secrets):
+
+- POSTGRES_USER
+- POSTGRES_PASSWORD
+- POSTGRES_HOST
+- POSTGRES_PORT
+- POSTGRES_DB
+
+You can also supply a full connection string via `DATABASE_URL` (overrides the individual fields). If using streaming/logging with Redis, set `REDIS_HOST`, `REDIS_PORT`, and optionally `REDIS_PASSWORD`.
+
 ## Development
 
 ### Setup Development Environment
@@ -83,9 +95,9 @@ make versions       # List all available versions
 ## Versioning
 
 We use [Semantic Versioning](https://semver.org/):
+
 - **MAJOR** version for incompatible API changes
 - **MINOR** version for new functionality (backward compatible)
 - **PATCH** version for bug fixes
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
-
