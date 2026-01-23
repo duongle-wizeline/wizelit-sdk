@@ -6,7 +6,7 @@ import asyncio
 import uuid
 import time
 from datetime import datetime, UTC
-from typing import List, Optional, Awaitable, Any, TYPE_CHECKING, Union
+from typing import List, Optional, Awaitable, Any, TYPE_CHECKING
 from fastmcp import Context
 
 if TYPE_CHECKING:
