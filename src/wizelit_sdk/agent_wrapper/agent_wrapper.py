@@ -362,9 +362,10 @@ class WizelitAgent:
                 return result
 
             except Exception as e:
-                # Mark job as failed (only if job exists)
-                if job is not None:
-                    job.status = "failed"
+                # Mark job as failed when a job instance exists
+                active_job = job or _current_job.get()
+                if active_job is not None:
+                    active_job.status = "failed"
 
                 # Stream error information
                 await ctx.report_progress(
