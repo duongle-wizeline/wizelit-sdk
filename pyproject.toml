@@ -19,6 +19,7 @@ dependencies = [
     "redis>=4.5.0",
     # typing helpers
     "typing-extensions>=4.0.0",
+    "typeguard>=4.3.0",
 ]
 
 [project.optional-dependencies]
