@@ -109,7 +109,8 @@ def bind_and_validate_arguments(
             check_type(name, value, expected)
         except TypeError as exc:
             raise SignatureValidationError(
-                f"Argument '{name}' to {func.__name__} must be {expected}, got {type(value)}"
+                f"Argument '{name}' to {func.__name__} must be {expected!r}, got {type(value)!r}. "
+                f"Value: {value!r}. Original error: {exc}"
             ) from exc
 
     return bound.arguments
