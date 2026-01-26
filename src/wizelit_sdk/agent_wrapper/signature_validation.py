@@ -106,7 +106,9 @@ def bind_and_validate_arguments(
         if expected is None:
             continue
         try:
-            check_type(name, value, expected)
+            # typeguard 4.x uses check_type(value, expected_type)
+            # typeguard 2.x uses check_type(argname, value, expected_type)
+            check_type(value, expected)
         except TypeError as exc:
             raise SignatureValidationError(
                 f"Argument '{name}' to {func.__name__} must be {expected!r}, got {type(value)!r}. "
