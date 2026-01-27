@@ -3,7 +3,7 @@ import asyncio
 import inspect
 import logging
 import os
-from typing import Callable, Any, Optional, Literal, Dict, TYPE_CHECKING, Union
+from typing import Callable, Any, Optional, Literal, Dict, TYPE_CHECKING, Union, cast
 from contextvars import ContextVar
 from fastmcp import FastMCP, Context
 from fastmcp.dependencies import CurrentContext
@@ -13,6 +13,9 @@ from wizelit_sdk.agent_wrapper.signature_validation import (
     bind_and_validate_arguments,
     ensure_type_hints,
 )
+
+# Local Transport literal to avoid import issues when fastmcp.types is unavailable
+Transport = Literal["stdio", "http", "sse", "streamable-http"]
 
 if TYPE_CHECKING:
     from wizelit_sdk.database import DatabaseManager
@@ -73,7 +76,7 @@ class WizelitAgent:
         self._tools = {}
         self._jobs: Dict[str, Job] = {}  # Store jobs by job_id
         self._host = host
-        self._transport = transport
+        self._transport: Transport = cast(Transport, transport)
         self._port = port
         self._db_manager = db_manager
         self._log_streamer = None
@@ -257,9 +260,9 @@ class WizelitAgent:
                 )
 
             # Set the signature with ctx as last parameter with CurrentContext() default
-            tool_wrapper.__signature__ = new_sig
-            tool_wrapper.__name__ = tool_name
-            tool_wrapper.__doc__ = tool_description
+            cast(Any, tool_wrapper).__signature__ = new_sig
+            cast(Any, tool_wrapper).__name__ = tool_name
+            cast(Any, tool_wrapper).__doc__ = tool_description
 
             # Copy annotations and add Context
             # Note: We don't add job annotation here since we use Any and exclude it from schema
@@ -271,7 +274,7 @@ class WizelitAgent:
                 new_annotations["job"] = (
                     Any  # Use Any instead of Job to avoid Pydantic schema issues
                 )
-            tool_wrapper.__annotations__ = new_annotations
+            cast(Any, tool_wrapper).__annotations__ = new_annotations
 
             # Register with fast-mcp
             # Exclude ctx and job from schema generation since they're dependency-injected
@@ -392,7 +395,7 @@ class WizelitAgent:
 
     def run(
         self,
-        transport: Optional[str] = None,
+        transport: Optional[Transport] = None,
         host: Optional[str] = None,
         port: Optional[int] = None,
         **kwargs,
@@ -406,7 +409,7 @@ class WizelitAgent:
             port: Port to bind to (for HTTP transports)
             **kwargs: Additional arguments passed to fast-mcp
         """
-        transport = transport or self._transport
+        transport = cast(Transport, transport or self._transport)
         host = host or self._host
         port = port or self._port
         print(f"🚀 Starting {self._name} MCP Server")
@@ -516,12 +519,12 @@ class WizelitAgent:
                     "error": job_model.error,
                     "created_at": (
                         job_model.created_at.isoformat()
-                        if job_model.created_at
+                        if job_model.created_at is not None
                         else None
                     ),
                     "updated_at": (
                         job_model.updated_at.isoformat()
-                        if job_model.updated_at
+                        if job_model.updated_at is not None
                         else None
                     ),
                 }
