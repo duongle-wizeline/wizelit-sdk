@@ -41,7 +41,7 @@ class JobModel(BaseModel):
         Index('idx_job_created_at', 'created_at'),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<JobModel(id={self.id}, status={self.status})>"
 
 
@@ -68,5 +68,5 @@ class JobLogModel(BaseModel):
         Index('idx_job_log_job_id_timestamp', 'job_id', 'timestamp'),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<JobLogModel(id={self.id}, job_id={self.job_id}, level={self.level})>"
