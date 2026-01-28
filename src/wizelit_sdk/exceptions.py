@@ -61,11 +61,11 @@ class JobExecutionError(WizelitSDKException):
         if original_error:
             message += f" ({original_error})"
         suggestion = (
-            f"1. Check the job logs for detailed error information\n"
-            f"2. Verify job inputs are valid and complete\n"
-            f"3. Check if the underlying tool/function has dependencies\n"
-            f"4. Try running the job again with the same inputs\n"
-            f"5. Check application logs and database logs for more context"
+            "1. Check the job logs for detailed error information\n"
+            "2. Verify job inputs are valid and complete\n"
+            "3. Check if the underlying tool/function has dependencies\n"
+            "4. Try running the job again with the same inputs\n"
+            "5. Check application logs and database logs for more context"
         )
         super().__init__(message, suggestion)
 
@@ -76,11 +76,11 @@ class JobNotFoundError(WizelitSDKException):
     def __init__(self, job_id: str):
         message = f"Job not found: {job_id}"
         suggestion = (
-            f"1. Verify the job_id is correct and complete\n"
-            f"2. Check if the job has expired or been deleted\n"
-            f"3. Verify the job was created in the current session\n"
-            f"4. Check the database for job records\n"
-            f"5. Review job retention policies"
+            "1. Verify the job_id is correct and complete\n"
+            "2. Check if the job has expired or been deleted\n"
+            "3. Verify the job was created in the current session\n"
+            "4. Check the database for job records\n"
+            "5. Review job retention policies"
         )
         super().__init__(message, suggestion)
 
