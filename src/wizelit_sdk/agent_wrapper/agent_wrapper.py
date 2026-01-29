@@ -13,6 +13,9 @@ from wizelit_sdk.agent_wrapper.signature_validation import (
     bind_and_validate_arguments,
     ensure_type_hints,
 )
+from wizelit_sdk.exceptions import (
+    StreamingError,
+)
 
 # Local Transport literal to avoid import issues when fastmcp.types is unavailable
 Transport = Literal["stdio", "http", "sse", "streamable-http"]
@@ -92,7 +95,10 @@ class WizelitAgent:
             except ImportError:
                 print("Warning: redis package not installed. Log streaming disabled.")
             except Exception as e:
-                print(f"Warning: Failed to initialize log streamer: {e}")
+                raise StreamingError(
+                    "Failed to initialize log streaming",
+                    f"Could not connect to Redis at {redis_url}: {str(e)}"
+                )
 
         print(
             f"WizelitAgent initialized with name: {name}, transport: {transport}, host: {host}, port: {port}"
