@@ -4,17 +4,10 @@ Internal utility package for Wizelit Agent operations.
 
 ## Installation
 
-### Install from Git Repository
+### Install from PyPI
 
 ```bash
-# Install latest version from main branch
-uv pip install git+https://github.com/your-org/wizelit-sdk.git
-
-# Install specific version
-uv pip install git+https://github.com/your-org/wizelit-sdk.git@v0.1.0
-
-# Install with SSH (Recommended for Private Repos)
-uv pip install git+ssh://git@github.com/your-org/wizelit-sdk.git@v0.1.0
+uv pip install wizelit-sdk
 ```
 
 ### Add to pyproject.toml
@@ -22,9 +15,15 @@ uv pip install git+ssh://git@github.com/your-org/wizelit-sdk.git@v0.1.0
 ```toml
 [project]
 dependencies = [
-    "wizelit-sdk @ git+ssh://git@github.com/your-org/wizelit-sdk.git@v0.1.0"
+    "wizelit-sdk"
 ]
 ```
+
+## Quickstart
+
+1. Install the package (see above).
+2. Configure environment variables (see Configuration).
+3. Import and use the SDK from your app.
 
 ## Usage
 
@@ -33,6 +32,35 @@ from wizelit_agent_wrapper import your_module
 
 # Use the wrapper
 result = your_module.function()
+```
+
+## SDK Guide
+
+### Basic import patterns
+
+```python
+from wizelit_sdk import database, exceptions
+from wizelit_sdk.agent_wrapper import agent_wrapper
+```
+
+### Initialize and call
+
+```python
+# Example: create a wrapper and call a method
+wrapper = agent_wrapper.WizelitAgentWrapper()
+result = wrapper.run()
+```
+
+### Error handling
+
+```python
+from wizelit_sdk.exceptions import WizelitError
+
+try:
+    wrapper.run()
+except WizelitError as exc:
+    # handle SDK-specific errors
+    print(exc)
 ```
 
 ## Configuration
@@ -69,20 +97,54 @@ make install-dev
 ### Available Make Commands
 
 ```bash
-make setup          # Set up development environment
-make install-dev    # Install in development mode
-make test           # Run tests
-make format         # Format code with black
-make lint           # Lint code with ruff
-make check          # Run tests and linting
-make clean          # Clean build artifacts
-make build          # Build package
-make release        # Create new release (interactive)
-make tag VERSION=x.x.x  # Create specific version tag
-make push           # Push code and tags
-make version        # Show current version
-make versions       # List all available versions
+make setup                  # Set up development environment
+make install                # Install package (production mode)
+make install-dev            # Install in development mode
+make test                   # Run tests
+make lint                   # Run code linting
+make format                 # Format code with black
+make check                  # Run tests and linting
+make clean                  # Clean build artifacts
+make build                  # Build package
+make release x.x.x          # Create new release (updates version, tags, pushes)
+make tag VERSION=x.x.x      # Create and push git tag
+make push                   # Push code and tags to remote
+make publish                # Publish package (run checks, build, push to remote)
+make publish-pypi           # Publish package to public PyPI
+make publish-artifactory    # Publish package to private Artifactory/PyPI
+make version                # Show current version
+make versions               # List all available versions
 ```
+
+### Deploy to PyPI
+
+Use the built-in Makefile target (recommended):
+
+```bash
+make publish-pypi
+```
+
+This target will:
+
+1. Verify the git working tree is clean.
+2. Run tests and linting (`make check`).
+3. Build the package (`make build`).
+4. Upload the artifacts in `dist/` to PyPI via `twine`.
+
+Optional release/tag flow (before publishing):
+
+```bash
+# Interactive release flow (updates version, tags, pushes)
+make release x.x.x
+
+# Or tag a specific version
+make tag VERSION=x.x.x
+```
+
+Notes:
+
+- Ensure your PyPI credentials are configured locally (e.g., via $HOME/.pypirc or your preferred environment variables).
+- The package version must be unique on PyPI; if a version already exists, bump it and rebuild.
 
 ## Contributing
 
