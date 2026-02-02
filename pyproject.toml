@@ -20,7 +20,11 @@ dependencies = [
     # typing helpers
     "typing-extensions>=4.0.0",
     "typeguard>=4.3.0",
+    "click>=8.1.0",
 ]
+
+[project.scripts]
+wizelit-agent = "wizelit_sdk.cli:main"
 
 [project.optional-dependencies]
 dev = [
