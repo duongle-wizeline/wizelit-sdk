@@ -2050,10 +2050,11 @@ wheels = [
 
 [[package]]
 name = "wizelit-sdk"
-version = "0.1.31"
+version = "0.1.32"
 source = { editable = "." }
 dependencies = [
     { name = "asyncpg" },
+    { name = "click" },
     { name = "fastmcp" },
     { name = "redis" },
     { name = "sqlalchemy" },
@@ -2077,6 +2078,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.26.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=22.0.0" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.0.0" },
+    { name = "click", specifier = ">=8.1.0" },
     { name = "fastmcp", specifier = ">=0.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "redis", specifier = ">=4.5.0" },

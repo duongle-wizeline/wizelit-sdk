@@ -2,6 +2,8 @@
 
 Internal utility package for Wizelit Agent operations.
 
+> **New to Wizelit?** Start with the [**Quick Start Guide**](./QUICKSTART.md) to build your first agent in under 30 minutes!
+
 ## Installation
 
 ### Install from PyPI
@@ -24,6 +26,39 @@ dependencies = [
 1. Install the package (see above).
 2. Configure environment variables (see Configuration).
 3. Import and use the SDK from your app.
+
+### CLI
+
+The package also installs a small command-line tool named `wizelit-sdk` which helps scaffold and manage agent projects.
+
+Install and run the CLI:
+
+```bash
+# Install package (global or in virtualenv)
+pip install wizelit-sdk
+
+# Create a new project using a template (fast|slow|hybrid)
+wizelit-sdk init "My Agent" --template hybrid
+
+# Alternative (without wrapper):
+python -m wizelit_sdk.cli init "My Agent" --template hybrid
+```
+
+Useful commands:
+
+- `wizelit-sdk init <name> [--template fast|slow|hybrid]` — scaffold a new agent project
+- `wizelit-sdk scaffold <name>` — basic scaffold (older command)
+- `wizelit-sdk validate [path]` — validate project structure
+- `wizelit-sdk list-tools [path]` — list functions decorated with `@mcp.ingest`
+
+If you are developing locally, install editable and use the wrapper from your virtualenv:
+
+```bash
+# from repo root
+pip install -e .
+source .venv/bin/activate
+wizelit-sdk init "My Agent"
+```
 
 ## Usage
 

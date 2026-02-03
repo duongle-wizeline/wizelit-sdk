@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wizelit-sdk"
-version = "0.1.31"
+version = "0.1.32"
 description = "Wizelit Agent Wrapper - Internal utility package"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -20,7 +20,12 @@ dependencies = [
     # typing helpers
     "typing-extensions>=4.0.0",
     "typeguard>=4.3.0",
+    "click>=8.1.0",
 ]
+
+[project.scripts]
+wizelit-sdk = "wizelit_sdk.cli:main"
+wizelit = "wizelit_sdk.cli:main"
 
 [project.optional-dependencies]
 dev = [
