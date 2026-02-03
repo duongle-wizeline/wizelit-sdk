@@ -96,7 +96,8 @@ def _render_env_example() -> str:
 
 
 def _render_requirements(template: str) -> str:
-    base = ["wizelit-sdk"]
+    # Always include the SDK and click for CLI-based scaffolds
+    base = ["wizelit-sdk", "click>=8.1.0"]
     if template == "fast":
         extras = []
     elif template == "slow":
@@ -241,9 +242,10 @@ def scaffold(
 
     _write_file(project_dir / "main.py", _render_main_py(name, transport, host, port), force)
     _write_file(project_dir / "README.md", _render_readme(name), force)
+    # Ensure generated scaffold includes click as a runtime dependency
     _write_file(
         project_dir / "requirements.txt",
-        "wizelit-sdk\n",
+        "wizelit-sdk\nclick>=8.1.0\n",
         force,
     )
 
