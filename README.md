@@ -2,6 +2,8 @@
 
 Internal utility package for Wizelit Agent operations.
 
+> **New to Wizelit?** Start with the [**Quick Start Guide**](./QUICKSTART.md) to build your first agent in under 30 minutes!
+
 ## Installation
 
 ### Install from PyPI
