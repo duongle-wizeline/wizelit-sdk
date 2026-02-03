@@ -57,20 +57,20 @@ install-dev:
 # Run tests
 test:
 	@echo "Running tests..."
-	uv run pytest tests/ -v
+	uv run --with pytest pytest tests/ -v
 
 # Run code linting
 lint:
 	@echo "Running linting checks..."
-	uv run ruff check src/
+	uv run --with ruff ruff check src/
 	@echo "Running type checks..."
-	-uv run mypy src/ 2>/dev/null || echo "mypy not installed, skipping type checks"
+	-uv run --with mypy mypy src/ 2>/dev/null || echo "mypy not installed, skipping type checks"
 
 # Format code
 format:
 	@echo "Formatting code..."
-	uv run black src/ tests/
-	uv run ruff check --fix src/
+	uv run --with black black src/ tests/
+	uv run --with ruff ruff check --fix src/
 
 # Run all checks
 check: test lint
@@ -91,7 +91,7 @@ clean:
 # Build package
 build: clean
 	@echo "Building package..."
-	uv run python -m build
+	uv run --with build python -m build
 	@echo "Build complete! Files in dist/"
 
 # Check if VERSION is provided
