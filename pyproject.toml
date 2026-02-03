@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.scripts]
-wizelit-agent = "wizelit_sdk.cli:main"
+wizelit-sdk = "wizelit_sdk.cli:main"
 
 [project.optional-dependencies]
 dev = [
