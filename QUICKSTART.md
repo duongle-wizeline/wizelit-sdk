@@ -42,17 +42,24 @@ pip install -e .
 **Verify installation:**
 
 ```bash
-wizelit --version
+# The package provides the `wizelit-sdk` CLI. Use that or run the module directly:
+wizelit-sdk --help
+# or
+python -m wizelit_sdk.cli --help
 ```
 
 ---
 
 ## Step 2: Create Your First Agent
 
-Use the CLI to scaffold a new agent project:
+Use the CLI to scaffold a new agent project (CLI is `wizelit-sdk`):
 
 ```bash
-wizelit init my-first-agent
+wizelit-sdk init my-first-agent
+# Alternative (if you don't have the console script available):
+python -m wizelit_sdk.cli init my-first-agent
+# If you're running in an ephemeral `uv` environment:
+uv run --with wizelit-sdk wizelit-sdk init my-first-agent
 ```
 
 This creates a directory with:
@@ -191,14 +198,14 @@ Wizelit provides three agent templates:
 
 - **Use case:** Simple, synchronous operations
 - **Example:** Text processing, API proxying
-- **Command:** `wizelit init my-agent --template fast`
+- **Command:** `wizelit-sdk init my-agent --template fast`
 
 ### Slow Agent
 
 - **Use case:** Long-running async tasks
 - **Example:** File processing, ML inference, batch jobs
 - **Includes:** Redis for job queuing
-- **Command:** `wizelit init my-agent --template slow`
+- **Command:** `wizelit-sdk init my-agent --template slow`
 
 Example slow agent function:
 
@@ -214,7 +221,7 @@ async def process_file(filepath: str, job: Job) -> dict:
 
 - **Use case:** Both fast and slow operations
 - **Example:** API with background jobs
-- **Command:** `wizelit init my-agent --template hybrid`
+- **Command:** `wizelit-sdk init my-agent --template hybrid`
 
 ---
 
@@ -223,7 +230,9 @@ async def process_file(filepath: str, job: Job) -> dict:
 Ensure your agent has all required files:
 
 ```bash
-wizelit validate
+wizelit-sdk validate
+# or
+python -m wizelit_sdk.cli validate
 ```
 
 Output:
@@ -239,7 +248,9 @@ Output:
 See all tools available in your agent:
 
 ```bash
-wizelit list-tools
+wizelit-sdk list-tools
+# or
+python -m wizelit_sdk.cli list-tools
 ```
 
 Output:
