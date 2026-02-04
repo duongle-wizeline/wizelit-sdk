@@ -165,15 +165,10 @@ publish:
 	else \
 		repo_path="your-org/wizelit-sdk"; \
 	fi; \
-	if echo "$$repo_path" | grep -q "@\|:"; then \
-		install_url="$$git_repo_url"; \
-	else \
-		install_url="git+ssh://git@github.com/$$repo_path.git"; \
-	fi; \
 	echo "Package v$$current_version has been published!"; \
 	echo ""; \
 	echo "Team members can now install with:"; \
-	echo "  uv pip install $$install_url@v$$current_version"
+	echo "  uv pip install git+ssh://git@github.com/$$repo_path.git@v$$current_version"
 
 # Release process - creates tag and pushes to remote
 release: check-version
@@ -246,7 +241,7 @@ release: check-version
 	@echo ""
 	@echo "=== Release v$(VERSION) complete! ==="
 	@echo ""
-	git_repo_url=$$(git remote get-url origin 2>/dev/null || echo ""); \
+	@git_repo_url=$$(git remote get-url origin 2>/dev/null || echo ""); \
 	if echo "$$git_repo_url" | grep -q "^git@"; then \
 		repo_path=$$(echo "$$git_repo_url" | sed 's|git@github.com:||' | sed 's|\.git$$||'); \
 	elif echo "$$git_repo_url" | grep -q "^https://"; then \
@@ -254,13 +249,8 @@ release: check-version
 	else \
 		repo_path="your-org/wizelit-sdk"; \
 	fi; \
-	if echo "$$repo_path" | grep -q "@\|:"; then \
-		install_url="$$git_repo_url"; \
-	else \
-		install_url="git+ssh://git@github.com/$$repo_path.git"; \
-	fi; \
 	echo "Team members can now install with:"; \
-	echo "  uv pip install $$install_url@v$(VERSION)"
+	echo "  uv pip install git+ssh://git@github.com/$$repo_path.git@v$(VERSION)"
 
 # Publish to public PyPI
 publish-pypi:
@@ -338,4 +328,3 @@ version:
 versions:
 	@echo "Available versions:"
 	@git tag -l "v*" | sort -V
-
