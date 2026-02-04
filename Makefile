@@ -157,18 +157,21 @@ publish:
 	@echo "=== Publishing Complete! ==="
 	@echo ""
 	@current_version=$$(grep "^version = " pyproject.toml | sed 's/version = //g' | tr -d '"'); \
-	git_repo_url=$$(git remote get-url origin 2>/dev/null || echo ""); \
+	@git_repo_url=$$(git remote get-url origin 2>/dev/null || echo ""); \
 	if echo "$$git_repo_url" | grep -q "^git@"; then \
-		repo_path=$$(echo "$$git_repo_url" | sed 's|git@github.com:||' | sed 's|\.git$$||'); \
+		repo_host=$$(echo "$$git_repo_url" | sed 's|^git@||' | sed 's|:.*$$||'); \
+		repo_path=$$(echo "$$git_repo_url" | sed 's|^git@[^:]*:||' | sed 's|\.git$$||'); \
 	elif echo "$$git_repo_url" | grep -q "^https://"; then \
-		repo_path=$$(echo "$$git_repo_url" | sed 's|https://github.com/||' | sed 's|\.git$$||'); \
+		repo_host=$$(echo "$$git_repo_url" | sed 's|https://||' | sed 's|/.*$$||'); \
+		repo_path=$$(echo "$$git_repo_url" | sed 's|https://[^/]*/||' | sed 's|\.git$$||'); \
 	else \
+		repo_host="github.com"; \
 		repo_path="your-org/wizelit-sdk"; \
 	fi; \
 	echo "Package v$$current_version has been published!"; \
 	echo ""; \
 	echo "Team members can now install with:"; \
-	echo "  uv pip install git+ssh://git@github.com/$$repo_path.git@v$$current_version"
+	echo "  uv pip install git+ssh://git@$$repo_host/$$repo_path.git@v$$current_version"
 
 # Release process - creates tag and pushes to remote
 release: check-version
@@ -243,14 +246,17 @@ release: check-version
 	@echo ""
 	@git_repo_url=$$(git remote get-url origin 2>/dev/null || echo ""); \
 	if echo "$$git_repo_url" | grep -q "^git@"; then \
-		repo_path=$$(echo "$$git_repo_url" | sed 's|git@github.com:||' | sed 's|\.git$$||'); \
+		repo_host=$$(echo "$$git_repo_url" | sed 's|^git@||' | sed 's|:.*$$||'); \
+		repo_path=$$(echo "$$git_repo_url" | sed 's|^git@[^:]*:||' | sed 's|\.git$$||'); \
 	elif echo "$$git_repo_url" | grep -q "^https://"; then \
-		repo_path=$$(echo "$$git_repo_url" | sed 's|https://github.com/||' | sed 's|\.git$$||'); \
+		repo_host=$$(echo "$$git_repo_url" | sed 's|https://||' | sed 's|/.*$$||'); \
+		repo_path=$$(echo "$$git_repo_url" | sed 's|https://[^/]*/||' | sed 's|\.git$$||'); \
 	else \
+		repo_host="github.com"; \
 		repo_path="your-org/wizelit-sdk"; \
 	fi; \
 	echo "Team members can now install with:"; \
-	echo "  uv pip install git+ssh://git@github.com/$$repo_path.git@v$(VERSION)"
+	echo "  uv pip install git+ssh://git@$$repo_host/$$repo_path.git@v$(VERSION)"
 
 # Publish to public PyPI
 publish-pypi:
