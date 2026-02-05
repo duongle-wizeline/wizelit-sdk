@@ -377,53 +377,66 @@ class WizelitAgent:
             if token is not None:
                 _current_job.reset(token)
 
-    def _create_accept_header_middleware(self):
-        """Create middleware to make Accept header validation more lenient for streamable-http."""
-        from starlette.middleware.base import BaseHTTPMiddleware
-        from starlette.requests import Request
+    def _create_accept_header_middleware_wrapper(self, app):
+        """Create an ASGI middleware wrapper that modifies Accept header before Request creation.
 
-        class LenientAcceptHeaderMiddleware(BaseHTTPMiddleware):
-            """Middleware to make Accept header validation more lenient for streamable-http."""
+        This wraps the FastAPI/Starlette app and modifies the scope headers before
+        the Request object is created, ensuring FastMCP sees the correct Accept header.
+        """
 
-            async def dispatch(self, request: Request, call_next):
-                # Only modify Accept header for MCP endpoints
-                if "/mcp" in str(request.url.path):
-                    accept_header = request.headers.get("accept", "").lower()
+        async def lenient_accept_header_wrapper(scope, receive, send):
+            """ASGI middleware that modifies Accept header in scope before app processes it."""
+            # Only process HTTP requests
+            if scope["type"] == "http":
+                # Check if this is an MCP endpoint
+                path = scope.get("path", "")
+                if "/mcp" in path:
+                    # Get headers from scope (they're bytes tuples)
+                    headers = list(scope.get("headers", []))
+
+                    # Find and check Accept header
+                    accept_header_value = None
+                    accept_header_index = None
+
+                    for i, (name, value) in enumerate(headers):
+                        if name.lower() == b"accept":
+                            accept_header_value = value.decode(
+                                "utf-8", errors="ignore"
+                            ).lower()
+                            accept_header_index = i
+                            break
 
                     # Check if Accept header needs fixing
-                    needs_fix = (
-                        not accept_header
-                        or accept_header == "application/json"
-                        or accept_header == "*/*"
+                    needs_fix = False
+                    if accept_header_value is None:
+                        needs_fix = True
+                    elif (
+                        accept_header_value == "application/json"
+                        or accept_header_value == "*/*"
                         or (
-                            "application/json" in accept_header
-                            and "text/event-stream" not in accept_header
+                            "application/json" in accept_header_value
+                            and "text/event-stream" not in accept_header_value
                         )
-                    )
+                    ):
+                        needs_fix = True
 
                     if needs_fix:
-                        # Modify headers in request.scope (Starlette/FastAPI internal)
-                        headers_list = list(request.scope.get("headers", []))
-
                         # Remove existing accept header if present
-                        headers_list = [
-                            (name, value)
-                            for name, value in headers_list
-                            if name.lower() != b"accept"
-                        ]
+                        if accept_header_index is not None:
+                            headers.pop(accept_header_index)
 
                         # Add new Accept header with both content types
-                        headers_list.append(
+                        headers.append(
                             (b"accept", b"application/json, text/event-stream")
                         )
 
-                        # Update the scope
-                        request.scope["headers"] = headers_list
+                        # Update the scope with modified headers
+                        scope["headers"] = headers
 
-                response = await call_next(request)
-                return response
+            # Continue with the modified scope to the original app
+            await app(scope, receive, send)
 
-        return LenientAcceptHeaderMiddleware
+        return lenient_accept_header_wrapper
 
     def _get_fastapi_app(self):
         """Try to get the FastAPI app from FastMCP."""
@@ -435,26 +448,35 @@ class WizelitAgent:
             return self._mcp.fastapi_app
         return None
 
-    def _is_middleware_added(self, app, middleware_class):
-        """Check if middleware is already added to the app."""
-        user_middleware = getattr(app, "user_middleware", []) or []
-        return any(
-            isinstance(m.cls if hasattr(m, "cls") else m, type)
-            and (m.cls if hasattr(m, "cls") else m) == middleware_class
-            for m in user_middleware
+    def _is_middleware_added(self, app):
+        """Check if Accept header middleware is already added to the app."""
+        return hasattr(app, "_wizelit_accept_middleware_wrapped")
+
+    def _add_accept_header_middleware(self, app):
+        """Wrap the FastAPI app with ASGI middleware that modifies Accept header.
+
+        This wraps the app's __call__ method to modify the scope before the Request
+        object is created, ensuring FastMCP sees the correct Accept header.
+        """
+        if self._is_middleware_added(app):
+            return False
+
+        # Store the original __call__ method
+        original_call = app.__call__
+
+        # Create the wrapper
+        wrapper = self._create_accept_header_middleware_wrapper(original_call)
+
+        # Replace the app's __call__ with our wrapper
+        app.__call__ = wrapper
+        app._wizelit_accept_middleware_wrapped = True
+
+        print(
+            "✅ Added lenient Accept header middleware for streamable-http compatibility"
         )
+        return True
 
-    def _add_accept_header_middleware(self, app, middleware_class):
-        """Add Accept header middleware to the FastAPI app if not already added."""
-        if not self._is_middleware_added(app, middleware_class):
-            app.add_middleware(middleware_class)
-            print(
-                "✅ Added lenient Accept header middleware for streamable-http compatibility"
-            )
-            return True
-        return False
-
-    def _patch_fastmcp_run_with_middleware(self, middleware_class):
+    def _patch_fastmcp_run_with_middleware(self):
         """Patch FastMCP's run method to add middleware before server starts."""
         original_run = self._mcp.run
 
@@ -462,7 +484,7 @@ class WizelitAgent:
             # Try to get app before calling original_run
             app = self._get_fastapi_app()
             if app:
-                self._add_accept_header_middleware(app, middleware_class)
+                self._add_accept_header_middleware(app)
 
             # Call original run (this will start the server)
             result = original_run(*args, **run_kwargs)
@@ -475,7 +497,7 @@ class WizelitAgent:
 
                 app = self._get_fastapi_app()
                 if app:
-                    self._add_accept_header_middleware(app, middleware_class)
+                    self._add_accept_header_middleware(app)
 
             return result
 
@@ -489,15 +511,13 @@ class WizelitAgent:
         FastMCP requires "application/json, text/event-stream" but Chainlit doesn't set it.
         """
         try:
-            middleware_class = self._create_accept_header_middleware()
-
             # Try to add middleware before run() is called
             app = self._get_fastapi_app()
             if app:
-                self._add_accept_header_middleware(app, middleware_class)
+                self._add_accept_header_middleware(app)
             else:
                 # If app not available, patch run() to add middleware during initialization
-                self._patch_fastmcp_run_with_middleware(middleware_class)
+                self._patch_fastmcp_run_with_middleware()
                 print(
                     "ℹ️  Will add Accept header middleware during FastMCP initialization"
                 )
