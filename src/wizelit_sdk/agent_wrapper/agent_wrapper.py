@@ -45,6 +45,78 @@ class CurrentJob:
         return _current_job.get()
 
 
+def _apply_fastmcp_accept_header_patch():
+    """Apply FastMCP Accept header patch at module level.
+    
+    This ensures the patch is applied as early as possible, even before
+    any WizelitAgent instances are created.
+    """
+    try:
+        import fastmcp.server.http as fastmcp_http
+        
+        if hasattr(fastmcp_http, "StreamableHTTPASGIApp"):
+            StreamableHTTPASGIApp = fastmcp_http.StreamableHTTPASGIApp
+            
+            # Check if already patched (avoid double-patching)
+            if hasattr(StreamableHTTPASGIApp.__call__, "_wizelit_patched"):
+                return True
+            
+            original_call = StreamableHTTPASGIApp.__call__
+
+            async def patched_streamable_call(self, scope, receive, send):
+                """Patched StreamableHTTPASGIApp.__call__ to modify Accept header."""
+                if scope.get("type") == "http":
+                    path = scope.get("path", "")
+                    if "/mcp" in path:
+                        headers = list(scope.get("headers", []))
+                        accept_header_value = None
+                        accept_header_index = None
+
+                        for i, (name, value) in enumerate(headers):
+                            if name.lower() == b"accept":
+                                accept_header_value = value.decode(
+                                    "utf-8", errors="ignore"
+                                ).lower()
+                                accept_header_index = i
+                                break
+
+                        needs_fix = False
+                        if accept_header_value is None:
+                            needs_fix = True
+                        elif (
+                            accept_header_value == "application/json"
+                            or accept_header_value == "*/*"
+                            or (
+                                "application/json" in accept_header_value
+                                and "text/event-stream" not in accept_header_value
+                            )
+                        ):
+                            needs_fix = True
+
+                        if needs_fix:
+                            if accept_header_index is not None:
+                                headers.pop(accept_header_index)
+                            headers.append(
+                                (b"accept", b"application/json, text/event-stream")
+                            )
+                            scope["headers"] = headers
+
+                # Call original __call__
+                return await original_call(self, scope, receive, send)
+            
+            # Mark as patched to avoid double-patching
+            patched_streamable_call._wizelit_patched = True
+            StreamableHTTPASGIApp.__call__ = patched_streamable_call
+            return True
+    except Exception:
+        # Silently fail - patch will be retried in _patch_fastmcp_validation
+        pass
+    return False
+
+# Apply patch at module import time
+_apply_fastmcp_accept_header_patch()
+
+
 class WizelitAgent:
     """
     Main wrapper class that converts Python functions into MCP server tools.
@@ -73,16 +145,6 @@ class WizelitAgent:
             db_manager: Optional DatabaseManager for job persistence
             enable_streaming: Enable real-time log streaming via Redis
         """
-        # CRITICAL DEBUG: Verify this code is being used
-        print("=" * 80)
-        print("🔴 WizelitAgent.__init__() CALLED")
-        print(f"   Name: {name}, Transport: {transport}, Port: {port}")
-        import sys
-
-        print(f"   Python: {sys.executable}")
-        print(f"   Module: {__file__}")
-        print("=" * 80)
-
         self._mcp = FastMCP(name=name)
         self._name = name
         self._version = version
@@ -720,17 +782,23 @@ class WizelitAgent:
         self._mcp.run = patched_run
 
     def _patch_fastmcp_validation(self):
-        """Try to patch FastMCP's Accept header validation directly at module level."""
+        """Try to patch FastMCP's Accept header validation directly at module level.
+        
+        This is the primary and most reliable method - it patches at the module level
+        so it works regardless of when the app is created or how it's initialized.
+        """
         try:
             # FastMCP validates Accept header in its streamable-http route handler
-            # We need to patch the route handler or validation function
             import fastmcp.server.http as fastmcp_http
-            import fastmcp.server as fastmcp_server
-            import inspect
-
+            
             # Try to patch StreamableHTTPASGIApp's __call__ method
             if hasattr(fastmcp_http, "StreamableHTTPASGIApp"):
                 StreamableHTTPASGIApp = fastmcp_http.StreamableHTTPASGIApp
+                
+                # Check if already patched (avoid double-patching)
+                if hasattr(StreamableHTTPASGIApp.__call__, "_wizelit_patched"):
+                    return True
+                
                 original_call = StreamableHTTPASGIApp.__call__
 
                 async def patched_streamable_call(self, scope, receive, send):
@@ -773,14 +841,24 @@ class WizelitAgent:
 
                     # Call original __call__
                     return await original_call(self, scope, receive, send)
-
+                
+                # Mark as patched to avoid double-patching
+                patched_streamable_call._wizelit_patched = True
                 StreamableHTTPASGIApp.__call__ = patched_streamable_call
+                
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info("Patched FastMCP StreamableHTTPASGIApp for Accept header compatibility")
                 return True
+            else:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning("StreamableHTTPASGIApp not found in fastmcp.server.http - patch not applied")
+                return False
 
         except Exception as e:
             # Log error but don't crash - the server should still work
             import logging
-
             logger = logging.getLogger(__name__)
             logger.warning(f"Could not patch FastMCP Accept header validation: {e}")
             return False
@@ -792,11 +870,13 @@ class WizelitAgent:
         FastMCP requires "application/json, text/event-stream" but Chainlit doesn't set it.
         """
         try:
+            # Primary approach: Patch FastMCP's StreamableHTTPASGIApp at module level
+            # This works regardless of when the app is created and is the most reliable
+            if self._patch_fastmcp_validation():
+                return  # Success - module-level patch applied
+            
+            # Fallback: Try to add middleware to FastAPI app if available
             middleware_class = self._create_accept_header_middleware()
-
-            # FastMCP's middleware runs at MCP protocol level, not HTTP level
-            # We need to add middleware at the FastAPI/Starlette level instead
-            # Try to add middleware before run() is called
             app = self._get_fastapi_app()
             if app:
                 self._add_accept_header_middleware(app, middleware_class)
