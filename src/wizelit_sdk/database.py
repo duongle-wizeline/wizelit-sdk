@@ -132,7 +132,7 @@ class DatabaseManager:
         finally:
             await session.close()
 
-    async def close(self):
+    async def close(self) -> None:
         """Dispose of the engine and close all connections."""
         await self.engine.dispose()
         logger.info("Database connections closed")

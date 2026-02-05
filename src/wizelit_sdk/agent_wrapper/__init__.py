@@ -5,4 +5,7 @@ from .agent_wrapper import WizelitAgent
 from .job import Job
 from .streaming import LogStreamer
 
-__all__ = ["WizelitAgent", "Job", "LogStreamer"]
+# Backward-compatible alias used by sample MCP servers
+WizelitAgentWrapper = WizelitAgent
+
+__all__ = ["WizelitAgent", "WizelitAgentWrapper", "Job", "LogStreamer"]

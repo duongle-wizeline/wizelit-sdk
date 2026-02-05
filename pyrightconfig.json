@@ -1,0 +1,6 @@
+{
+  "typeCheckingMode": "standard",
+  "pythonVersion": "3.10",
+  "include": ["src/**/*.py", "tests/**/*.py"],
+  "exclude": ["**/.venv", "**/__pycache__", "wizelit_sdk.egg-info"]
+}

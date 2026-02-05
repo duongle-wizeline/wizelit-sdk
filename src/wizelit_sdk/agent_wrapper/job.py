@@ -6,7 +6,7 @@ import asyncio
 import uuid
 import time
 from datetime import datetime, UTC
-from typing import List, Optional, Awaitable, Any, TYPE_CHECKING
+from typing import Optional, Awaitable, Any, TYPE_CHECKING
 from fastmcp import Context
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ class MemoryLogHandler(logging.Handler):
     Custom logging handler that stores log messages in a list.
     """
 
-    def __init__(self, logs_list: List[str]):
+    def __init__(self, logs_list: list[str]):
         super().__init__()
         self.logs_list = logs_list
         self.setFormatter(logging.Formatter('%(message)s'))
@@ -156,7 +156,7 @@ class Job:
         self._ctx = ctx
         self._id = job_id or f"JOB-{str(uuid.uuid4())[:8]}"
         self._status = "running"
-        self._logs: List[str] = []
+        self._logs: list[str] = []
         self._result: Optional[str] = None
         self._error: Optional[str] = None
         self._db_manager = db_manager
@@ -176,7 +176,7 @@ class Job:
         return self._logger
 
     @property
-    def logs(self) -> List[str]:
+    def logs(self) -> list[str]:
         """List of log messages (timestamped strings)."""
         return self._logs
 
