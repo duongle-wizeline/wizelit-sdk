@@ -722,8 +722,6 @@ class WizelitAgent:
             # FastMCP validates Accept header in its streamable-http route handler
             # We need to patch the route handler or validation function
             import fastmcp.server.http as fastmcp_http
-            import fastmcp.server as fastmcp_server
-            import inspect
 
             # Try to patch StreamableHTTPASGIApp's __call__ method
             if hasattr(fastmcp_http, "StreamableHTTPASGIApp"):
