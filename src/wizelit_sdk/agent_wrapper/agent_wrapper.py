@@ -52,13 +52,19 @@ def _apply_fastmcp_accept_header_patch():
     any WizelitAgent instances are created.
     """
     try:
-        import fastmcp.server.http as fastmcp_http
+        # Try importing fastmcp - it might not be installed in all environments
+        try:
+            import fastmcp.server.http as fastmcp_http
+        except ImportError as e:
+            print(f"⚠️ [WizelitAgent] Could not import fastmcp.server.http: {e}")
+            return False
         
         if hasattr(fastmcp_http, "StreamableHTTPASGIApp"):
             StreamableHTTPASGIApp = fastmcp_http.StreamableHTTPASGIApp
             
             # Check if already patched (avoid double-patching)
             if hasattr(StreamableHTTPASGIApp.__call__, "_wizelit_patched"):
+                print("✅ [WizelitAgent] FastMCP Accept header patch already applied")
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.info("FastMCP Accept header patch already applied")
@@ -123,8 +129,11 @@ def _apply_fastmcp_accept_header_patch():
                             # CRITICAL: Must create a new tuple list and assign back to scope
                             # Modifying in-place might not work in all ASGI implementations
                             scope["headers"] = tuple(headers)
-                            # Log the modification for debugging
-                            print(f"🔧 [WizelitAgent Patch] Modified Accept header: '{original_accept}' -> 'application/json, text/event-stream' for {method} {path}")
+                            # Log the modification for debugging (use both print and logging)
+                            log_msg = f"🔧 [WizelitAgent Patch] Modified Accept header: '{original_accept}' -> 'application/json, text/event-stream' for {method} {path}"
+                            print(log_msg)
+                            import logging
+                            logging.getLogger(__name__).info(log_msg)
 
                 # Call original __call__
                 return await original_call(self, scope, receive, send)
@@ -163,15 +172,25 @@ def _apply_fastmcp_accept_header_patch():
         return False
 
 # Apply patch at module import time
+# Use both print and logging to ensure visibility in all environments
+import logging
+logger = logging.getLogger(__name__)
+
 print("=" * 80)
 print("[WizelitAgent] Module imported - applying Accept header patch...")
+logger.info("=" * 80)
+logger.info("[WizelitAgent] Module imported - applying Accept header patch...")
 print("=" * 80)
+
 _patch_applied = _apply_fastmcp_accept_header_patch()
 if _patch_applied:
     print("[WizelitAgent] ✅ Patch application completed successfully")
+    logger.info("[WizelitAgent] ✅ Patch application completed successfully")
 else:
     print("[WizelitAgent] ⚠️ Patch application failed or not needed")
+    logger.warning("[WizelitAgent] ⚠️ Patch application failed or not needed")
 print("=" * 80)
+logger.info("=" * 80)
 
 
 class WizelitAgent:
@@ -876,11 +895,11 @@ class WizelitAgent:
                                     accept_header_index = i
                                     break
 
-                            # Log all requests for debugging (especially DELETE to diagnose 400 error)
-                            if method.upper() == "DELETE":
-                                print(f"🔍 [WizelitAgent Patch] DELETE {path} - Accept: '{accept_header_value or 'missing'}' - Headers: {len(headers)}")
-                            else:
-                                print(f"🔍 [WizelitAgent Patch] {method} {path} - Accept: '{accept_header_value or 'missing'}'")
+                        # Log all requests for debugging (use both print and logging)
+                        log_msg = f"🔍 [WizelitAgent Patch] {method} {path} - Accept: '{accept_header_value or 'missing'}'"
+                        print(log_msg)
+                        import logging
+                        logging.getLogger(__name__).info(log_msg)
 
                             # For DELETE requests, Accept header might not be required
                             # But we'll still fix it if present to be safe
