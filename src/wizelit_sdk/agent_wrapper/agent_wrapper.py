@@ -47,37 +47,41 @@ class CurrentJob:
 
 def _apply_fastmcp_accept_header_patch():
     """Apply FastMCP Accept header patch at module level.
-    
+
     This ensures the patch is applied as early as possible, even before
     any WizelitAgent instances are created.
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     try:
-        # Try importing fastmcp - it might not be installed in all environments
         try:
             import fastmcp.server.http as fastmcp_http
         except ImportError as e:
-            print(f"⚠️ [WizelitAgent] Could not import fastmcp.server.http: {e}")
+            logger.warning(f"Could not import fastmcp.server.http: {e}")
             return False
-        
+
         if hasattr(fastmcp_http, "StreamableHTTPASGIApp"):
             StreamableHTTPASGIApp = fastmcp_http.StreamableHTTPASGIApp
-            
+
             # Check if already patched (avoid double-patching)
             if hasattr(StreamableHTTPASGIApp.__call__, "_wizelit_patched"):
-                print("✅ [WizelitAgent] FastMCP Accept header patch already applied")
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.info("FastMCP Accept header patch already applied")
+                logger.debug("FastMCP Accept header patch already applied")
                 return True
-            
+
             original_call = StreamableHTTPASGIApp.__call__
 
             async def patched_streamable_call(self, scope, receive, send):
                 """Patched StreamableHTTPASGIApp.__call__ to modify Accept header."""
                 if scope.get("type") == "http":
                     path = scope.get("path", "")
-                    method = scope.get("method", "").decode("utf-8", errors="ignore") if isinstance(scope.get("method"), bytes) else scope.get("method", "")
-                    
+                    method = (
+                        scope.get("method", "").decode("utf-8", errors="ignore")
+                        if isinstance(scope.get("method"), bytes)
+                        else scope.get("method", "")
+                    )
+
                     if "/mcp" in path:
                         headers = list(scope.get("headers", []))
                         accept_header_value = None
@@ -120,7 +124,6 @@ def _apply_fastmcp_accept_header_patch():
                             # If DELETE has no Accept header, that's OK - don't add one
 
                         if needs_fix:
-                            original_accept = accept_header_value or "missing"
                             if accept_header_index is not None:
                                 headers.pop(accept_header_index)
                             headers.append(
@@ -129,68 +132,36 @@ def _apply_fastmcp_accept_header_patch():
                             # CRITICAL: Must create a new tuple list and assign back to scope
                             # Modifying in-place might not work in all ASGI implementations
                             scope["headers"] = tuple(headers)
-                            # Log the modification for debugging (use both print and logging)
-                            log_msg = f"🔧 [WizelitAgent Patch] Modified Accept header: '{original_accept}' -> 'application/json, text/event-stream' for {method} {path}"
-                            print(log_msg)
-                            import logging
-                            logging.getLogger(__name__).info(log_msg)
+                            logger.debug(f"Modified Accept header for {method} {path}")
 
                 # Call original __call__
                 return await original_call(self, scope, receive, send)
-            
+
             # Mark as patched to avoid double-patching
             patched_streamable_call._wizelit_patched = True
             StreamableHTTPASGIApp.__call__ = patched_streamable_call
-            
-            # Use print for visibility - will show in server logs
-            print("=" * 80)
-            print("✅ [WizelitAgent] FastMCP Accept header patch APPLIED at module level")
-            print("=" * 80)
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info("✅ FastMCP Accept header patch applied at module level")
+
+            logger.info("FastMCP Accept header patch applied at module level")
             return True
         else:
-            # Use print for visibility
-            print("=" * 80)
-            print("⚠️ [WizelitAgent] StreamableHTTPASGIApp not found in fastmcp.server.http")
-            print("=" * 80)
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning("⚠️ StreamableHTTPASGIApp not found in fastmcp.server.http")
+            logger.warning("StreamableHTTPASGIApp not found in fastmcp.server.http")
             return False
     except Exception as e:
-        # Log the error so we can see what went wrong
-        print("=" * 80)
-        print(f"⚠️ [WizelitAgent] Failed to apply FastMCP Accept header patch: {e}")
-        print("=" * 80)
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"⚠️ Failed to apply FastMCP Accept header patch at module level: {e}")
-        import traceback
-        logger.debug(traceback.format_exc())
+        logger.warning(
+            f"Failed to apply FastMCP Accept header patch: {e}", exc_info=True
+        )
         return False
 
+
 # Apply patch at module import time
-# Use both print and logging to ensure visibility in all environments
 import logging
+
 logger = logging.getLogger(__name__)
-
-print("=" * 80)
-print("[WizelitAgent] Module imported - applying Accept header patch...")
-logger.info("=" * 80)
-logger.info("[WizelitAgent] Module imported - applying Accept header patch...")
-print("=" * 80)
-
 _patch_applied = _apply_fastmcp_accept_header_patch()
 if _patch_applied:
-    print("[WizelitAgent] ✅ Patch application completed successfully")
-    logger.info("[WizelitAgent] ✅ Patch application completed successfully")
+    logger.debug("Accept header patch application completed")
 else:
-    print("[WizelitAgent] ⚠️ Patch application failed or not needed")
-    logger.warning("[WizelitAgent] ⚠️ Patch application failed or not needed")
-print("=" * 80)
-logger.info("=" * 80)
+    logger.debug("Accept header patch application skipped or failed")
 
 
 class WizelitAgent:
@@ -239,18 +210,16 @@ class WizelitAgent:
                 from .streaming import LogStreamer
 
                 self._log_streamer = LogStreamer(redis_url)
-                print(f"Log streaming enabled via Redis: {redis_url}")
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Log streaming enabled via Redis: {redis_url}")
             except ImportError:
-                print("Warning: redis package not installed. Log streaming disabled.")
+                logger = logging.getLogger(__name__)
+                logger.debug("Redis package not installed. Log streaming disabled.")
             except Exception as e:
                 raise StreamingError(
                     "Failed to initialize log streaming",
                     f"Could not connect to Redis at {redis_url}: {str(e)}",
                 )
-
-        print(
-            f"WizelitAgent initialized with name: {name}, transport: {transport}, host: {host}, port: {port}"
-        )
 
     def ingest(
         self,
@@ -501,7 +470,6 @@ class WizelitAgent:
                         kwargs["job"] = job
 
                 # Execute function (async or sync)
-                logging.info(f"kwargs: {kwargs}")
                 if is_async:
                     result = await func(**kwargs)
                 else:
@@ -725,16 +693,8 @@ class WizelitAgent:
                         # Update the scope with modified headers
                         scope["headers"] = headers
 
-                        print(
-                            f"🔧 [ASGI] Modified Accept header for {path}: "
-                            f"'{accept_header_value or 'missing'}' -> "
-                            f"'application/json, text/event-stream'"
-                        )
-                    else:
-                        print(
-                            f"ℹ️  [ASGI] Accept header already correct for {path}: "
-                            f"'{accept_header_value}'"
-                        )
+                        logger = logging.getLogger(__name__)
+                        logger.debug(f"Modified Accept header for {path}")
 
             # Continue with the modified scope to the original app
             await original_call(scope, receive, send)
@@ -744,10 +704,6 @@ class WizelitAgent:
 
         # Also add the Starlette middleware as a backup
         app.add_middleware(middleware_class)
-
-        print(
-            "✅ Added lenient Accept header middleware for streamable-http compatibility"
-        )
         return True
 
     def _patch_fastmcp_run_with_middleware(self, middleware_class):
@@ -856,127 +812,34 @@ class WizelitAgent:
         # Replace the run method
         self._mcp.run = patched_run
 
-    def _patch_fastmcp_validation(self):
-        """Try to patch FastMCP's Accept header validation directly at module level.
-        
-        This is the primary and most reliable method - it patches at the module level
-        so it works regardless of when the app is created or how it's initialized.
-        """
-        try:
-            # FastMCP validates Accept header in its streamable-http route handler
-            import fastmcp.server.http as fastmcp_http
-
-            # Try to patch StreamableHTTPASGIApp's __call__ method
-            if hasattr(fastmcp_http, "StreamableHTTPASGIApp"):
-                StreamableHTTPASGIApp = fastmcp_http.StreamableHTTPASGIApp
-                
-                # Check if already patched (avoid double-patching)
-                if hasattr(StreamableHTTPASGIApp.__call__, "_wizelit_patched"):
-                    return True
-                
-                original_call = StreamableHTTPASGIApp.__call__
-
-                async def patched_streamable_call(self, scope, receive, send):
-                    """Patched StreamableHTTPASGIApp.__call__ to modify Accept header."""
-                    if scope.get("type") == "http":
-                        path = scope.get("path", "")
-                        method = scope.get("method", b"").decode("utf-8", errors="ignore") if isinstance(scope.get("method"), bytes) else str(scope.get("method", ""))
-                        
-                        if "/mcp" in path:
-                            headers = list(scope.get("headers", []))
-                            accept_header_value = None
-                            accept_header_index = None
-
-                            for i, (name, value) in enumerate(headers):
-                                if name.lower() == b"accept":
-                                    accept_header_value = value.decode(
-                                        "utf-8", errors="ignore"
-                                    ).lower()
-                                    accept_header_index = i
-                                    break
-
-                        # Log all requests for debugging (use both print and logging)
-                        log_msg = f"🔍 [WizelitAgent Patch] {method} {path} - Accept: '{accept_header_value or 'missing'}'"
-                        print(log_msg)
-                        import logging
-                        logging.getLogger(__name__).info(log_msg)
-
-                            # For DELETE requests, Accept header might not be required
-                            # But we'll still fix it if present to be safe
-                            needs_fix = False
-                            if method.upper() != "DELETE":
-                                # For non-DELETE requests, always fix Accept header
-                                if accept_header_value is None:
-                                    needs_fix = True
-                                elif (
-                                    accept_header_value == "application/json"
-                                    or accept_header_value == "*/*"
-                                    or (
-                                        "application/json" in accept_header_value
-                                        and "text/event-stream" not in accept_header_value
-                                    )
-                                ):
-                                    needs_fix = True
-                            else:
-                                # For DELETE requests, only fix if header is present but incorrect
-                                if accept_header_value and (
-                                    accept_header_value == "application/json"
-                                    or (
-                                        "application/json" in accept_header_value
-                                        and "text/event-stream" not in accept_header_value
-                                    )
-                                ):
-                                    needs_fix = True
-                                # If DELETE has no Accept header, that's OK - don't add one
-
-                            if needs_fix:
-                                original_accept = accept_header_value or "missing"
-                                if accept_header_index is not None:
-                                    headers.pop(accept_header_index)
-                                headers.append(
-                                    (b"accept", b"application/json, text/event-stream")
-                                )
-                                # CRITICAL: Must create a new tuple and assign back to scope
-                                # Modifying in-place might not work in all ASGI implementations
-                                scope["headers"] = tuple(headers)
-                                print(f"🔧 [WizelitAgent Patch] Modified Accept header: '{original_accept}' -> 'application/json, text/event-stream' for {method} {path}")
-
-                    # Call original __call__
-                    return await original_call(self, scope, receive, send)
-                
-                # Mark as patched to avoid double-patching
-                patched_streamable_call._wizelit_patched = True
-                StreamableHTTPASGIApp.__call__ = patched_streamable_call
-                
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.info("Patched FastMCP StreamableHTTPASGIApp for Accept header compatibility")
-                return True
-            else:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning("StreamableHTTPASGIApp not found in fastmcp.server.http - patch not applied")
-                return False
-
-        except Exception as e:
-            # Log error but don't crash - the server should still work
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Could not patch FastMCP Accept header validation: {e}")
-            return False
-
     def _setup_accept_header_middleware(self):
         """Setup middleware to make Accept header validation more lenient.
 
         This allows clients that only send "application/json" to work.
         FastMCP requires "application/json, text/event-stream" but Chainlit doesn't set it.
+
+        Note: The module-level patch (_apply_fastmcp_accept_header_patch) should already
+        be applied at import time. This method provides fallback middleware if needed.
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
         try:
-            # Primary approach: Patch FastMCP's StreamableHTTPASGIApp at module level
-            # This works regardless of when the app is created and is the most reliable
-            if self._patch_fastmcp_validation():
-                return  # Success - module-level patch applied
-            
+            # Check if module-level patch is already applied
+            try:
+                import fastmcp.server.http as fastmcp_http
+
+                if hasattr(fastmcp_http, "StreamableHTTPASGIApp"):
+                    StreamableHTTPASGIApp = fastmcp_http.StreamableHTTPASGIApp
+                    if hasattr(StreamableHTTPASGIApp.__call__, "_wizelit_patched"):
+                        logger.debug(
+                            "Accept header patch already applied at module level"
+                        )
+                        return
+            except ImportError:
+                pass
+
             # Fallback: Try to add middleware to FastAPI app if available
             middleware_class = self._create_accept_header_middleware()
             app = self._get_fastapi_app()
@@ -987,11 +850,9 @@ class WizelitAgent:
                 self._patch_fastmcp_run_with_middleware(middleware_class)
 
         except Exception as e:
-            # Log error but don't crash - the server should still work
-            import logging
-
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Could not setup Accept header middleware: {e}")
+            logger.warning(
+                f"Could not setup Accept header middleware: {e}", exc_info=True
+            )
 
     def run(
         self,
