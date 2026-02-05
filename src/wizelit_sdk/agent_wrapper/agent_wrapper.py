@@ -424,9 +424,6 @@ class WizelitAgent:
             async def dispatch(self, request: Request, call_next):
                 # Only process MCP endpoints
                 if "/mcp" in str(request.url.path):
-                    # Get original Accept header for logging
-                    original_accept = request.headers.get("accept", "missing")
-
                     # Get headers from scope (they're bytes tuples)
                     headers = list(request.scope.get("headers", []))
 
