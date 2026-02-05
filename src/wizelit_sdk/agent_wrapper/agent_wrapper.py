@@ -70,6 +70,8 @@ def _apply_fastmcp_accept_header_patch():
                 """Patched StreamableHTTPASGIApp.__call__ to modify Accept header."""
                 if scope.get("type") == "http":
                     path = scope.get("path", "")
+                    method = scope.get("method", "").decode("utf-8", errors="ignore") if isinstance(scope.get("method"), bytes) else scope.get("method", "")
+                    
                     if "/mcp" in path:
                         headers = list(scope.get("headers", []))
                         accept_header_value = None
@@ -83,20 +85,36 @@ def _apply_fastmcp_accept_header_patch():
                                 accept_header_index = i
                                 break
 
+                        # For DELETE requests, Accept header might not be required
+                        # But we'll still fix it if present to be safe
                         needs_fix = False
-                        if accept_header_value is None:
-                            needs_fix = True
-                        elif (
-                            accept_header_value == "application/json"
-                            or accept_header_value == "*/*"
-                            or (
-                                "application/json" in accept_header_value
-                                and "text/event-stream" not in accept_header_value
-                            )
-                        ):
-                            needs_fix = True
+                        if method.upper() != "DELETE":
+                            # For non-DELETE requests, always fix Accept header
+                            if accept_header_value is None:
+                                needs_fix = True
+                            elif (
+                                accept_header_value == "application/json"
+                                or accept_header_value == "*/*"
+                                or (
+                                    "application/json" in accept_header_value
+                                    and "text/event-stream" not in accept_header_value
+                                )
+                            ):
+                                needs_fix = True
+                        else:
+                            # For DELETE requests, only fix if header is present but incorrect
+                            if accept_header_value and (
+                                accept_header_value == "application/json"
+                                or (
+                                    "application/json" in accept_header_value
+                                    and "text/event-stream" not in accept_header_value
+                                )
+                            ):
+                                needs_fix = True
+                            # If DELETE has no Accept header, that's OK - don't add one
 
                         if needs_fix:
+                            original_accept = accept_header_value or "missing"
                             if accept_header_index is not None:
                                 headers.pop(accept_header_index)
                             headers.append(
@@ -105,6 +123,8 @@ def _apply_fastmcp_accept_header_patch():
                             # CRITICAL: Must create a new tuple list and assign back to scope
                             # Modifying in-place might not work in all ASGI implementations
                             scope["headers"] = tuple(headers)
+                            # Log the modification for debugging
+                            print(f"🔧 [WizelitAgent Patch] Modified Accept header: '{original_accept}' -> 'application/json, text/event-stream' for {method} {path}")
 
                 # Call original __call__
                 return await original_call(self, scope, receive, send)
@@ -113,17 +133,28 @@ def _apply_fastmcp_accept_header_patch():
             patched_streamable_call._wizelit_patched = True
             StreamableHTTPASGIApp.__call__ = patched_streamable_call
             
+            # Use print for visibility - will show in server logs
+            print("=" * 80)
+            print("✅ [WizelitAgent] FastMCP Accept header patch APPLIED at module level")
+            print("=" * 80)
             import logging
             logger = logging.getLogger(__name__)
             logger.info("✅ FastMCP Accept header patch applied at module level")
             return True
         else:
+            # Use print for visibility
+            print("=" * 80)
+            print("⚠️ [WizelitAgent] StreamableHTTPASGIApp not found in fastmcp.server.http")
+            print("=" * 80)
             import logging
             logger = logging.getLogger(__name__)
             logger.warning("⚠️ StreamableHTTPASGIApp not found in fastmcp.server.http")
             return False
     except Exception as e:
         # Log the error so we can see what went wrong
+        print("=" * 80)
+        print(f"⚠️ [WizelitAgent] Failed to apply FastMCP Accept header patch: {e}")
+        print("=" * 80)
         import logging
         logger = logging.getLogger(__name__)
         logger.warning(f"⚠️ Failed to apply FastMCP Accept header patch at module level: {e}")
@@ -132,7 +163,15 @@ def _apply_fastmcp_accept_header_patch():
         return False
 
 # Apply patch at module import time
+print("=" * 80)
+print("[WizelitAgent] Module imported - applying Accept header patch...")
+print("=" * 80)
 _patch_applied = _apply_fastmcp_accept_header_patch()
+if _patch_applied:
+    print("[WizelitAgent] ✅ Patch application completed successfully")
+else:
+    print("[WizelitAgent] ⚠️ Patch application failed or not needed")
+print("=" * 80)
 
 
 class WizelitAgent:
@@ -822,6 +861,8 @@ class WizelitAgent:
                     """Patched StreamableHTTPASGIApp.__call__ to modify Accept header."""
                     if scope.get("type") == "http":
                         path = scope.get("path", "")
+                        method = scope.get("method", b"").decode("utf-8", errors="ignore") if isinstance(scope.get("method"), bytes) else str(scope.get("method", ""))
+                        
                         if "/mcp" in path:
                             headers = list(scope.get("headers", []))
                             accept_header_value = None
@@ -835,20 +876,42 @@ class WizelitAgent:
                                     accept_header_index = i
                                     break
 
+                            # Log all requests for debugging (especially DELETE to diagnose 400 error)
+                            if method.upper() == "DELETE":
+                                print(f"🔍 [WizelitAgent Patch] DELETE {path} - Accept: '{accept_header_value or 'missing'}' - Headers: {len(headers)}")
+                            else:
+                                print(f"🔍 [WizelitAgent Patch] {method} {path} - Accept: '{accept_header_value or 'missing'}'")
+
+                            # For DELETE requests, Accept header might not be required
+                            # But we'll still fix it if present to be safe
                             needs_fix = False
-                            if accept_header_value is None:
-                                needs_fix = True
-                            elif (
-                                accept_header_value == "application/json"
-                                or accept_header_value == "*/*"
-                                or (
-                                    "application/json" in accept_header_value
-                                    and "text/event-stream" not in accept_header_value
-                                )
-                            ):
-                                needs_fix = True
+                            if method.upper() != "DELETE":
+                                # For non-DELETE requests, always fix Accept header
+                                if accept_header_value is None:
+                                    needs_fix = True
+                                elif (
+                                    accept_header_value == "application/json"
+                                    or accept_header_value == "*/*"
+                                    or (
+                                        "application/json" in accept_header_value
+                                        and "text/event-stream" not in accept_header_value
+                                    )
+                                ):
+                                    needs_fix = True
+                            else:
+                                # For DELETE requests, only fix if header is present but incorrect
+                                if accept_header_value and (
+                                    accept_header_value == "application/json"
+                                    or (
+                                        "application/json" in accept_header_value
+                                        and "text/event-stream" not in accept_header_value
+                                    )
+                                ):
+                                    needs_fix = True
+                                # If DELETE has no Accept header, that's OK - don't add one
 
                             if needs_fix:
+                                original_accept = accept_header_value or "missing"
                                 if accept_header_index is not None:
                                     headers.pop(accept_header_index)
                                 headers.append(
@@ -857,6 +920,7 @@ class WizelitAgent:
                                 # CRITICAL: Must create a new tuple and assign back to scope
                                 # Modifying in-place might not work in all ASGI implementations
                                 scope["headers"] = tuple(headers)
+                                print(f"🔧 [WizelitAgent Patch] Modified Accept header: '{original_accept}' -> 'application/json, text/event-stream' for {method} {path}")
 
                     # Call original __call__
                     return await original_call(self, scope, receive, send)
