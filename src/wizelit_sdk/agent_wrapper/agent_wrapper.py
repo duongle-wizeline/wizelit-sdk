@@ -59,6 +59,9 @@ def _apply_fastmcp_accept_header_patch():
             
             # Check if already patched (avoid double-patching)
             if hasattr(StreamableHTTPASGIApp.__call__, "_wizelit_patched"):
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info("FastMCP Accept header patch already applied")
                 return True
             
             original_call = StreamableHTTPASGIApp.__call__
@@ -99,7 +102,9 @@ def _apply_fastmcp_accept_header_patch():
                             headers.append(
                                 (b"accept", b"application/json, text/event-stream")
                             )
-                            scope["headers"] = headers
+                            # CRITICAL: Must create a new tuple list and assign back to scope
+                            # Modifying in-place might not work in all ASGI implementations
+                            scope["headers"] = tuple(headers)
 
                 # Call original __call__
                 return await original_call(self, scope, receive, send)
@@ -107,14 +112,27 @@ def _apply_fastmcp_accept_header_patch():
             # Mark as patched to avoid double-patching
             patched_streamable_call._wizelit_patched = True
             StreamableHTTPASGIApp.__call__ = patched_streamable_call
+            
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info("✅ FastMCP Accept header patch applied at module level")
             return True
-    except Exception:
-        # Silently fail - patch will be retried in _patch_fastmcp_validation
-        pass
-    return False
+        else:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("⚠️ StreamableHTTPASGIApp not found in fastmcp.server.http")
+            return False
+    except Exception as e:
+        # Log the error so we can see what went wrong
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"⚠️ Failed to apply FastMCP Accept header patch at module level: {e}")
+        import traceback
+        logger.debug(traceback.format_exc())
+        return False
 
 # Apply patch at module import time
-_apply_fastmcp_accept_header_patch()
+_patch_applied = _apply_fastmcp_accept_header_patch()
 
 
 class WizelitAgent:
@@ -527,7 +545,8 @@ class WizelitAgent:
 
                         # Update the scope with modified headers
                         # This must be done before Request object uses the headers
-                        request.scope["headers"] = headers
+                        # CRITICAL: Must create a new tuple and assign back to scope
+                        request.scope["headers"] = tuple(headers)
 
                         # Also clear the cached headers dict if it exists
                         if hasattr(request, "_headers"):
@@ -751,7 +770,8 @@ class WizelitAgent:
                                                             b"application/json, text/event-stream",
                                                         )
                                                     )
-                                                    scope["headers"] = headers
+                                                    # CRITICAL: Must create a new tuple and assign back to scope
+                                                    scope["headers"] = tuple(headers)
 
                                         # Call original app
                                         return await original_app_call(
@@ -834,7 +854,9 @@ class WizelitAgent:
                                 headers.append(
                                     (b"accept", b"application/json, text/event-stream")
                                 )
-                                scope["headers"] = headers
+                                # CRITICAL: Must create a new tuple and assign back to scope
+                                # Modifying in-place might not work in all ASGI implementations
+                                scope["headers"] = tuple(headers)
 
                     # Call original __call__
                     return await original_call(self, scope, receive, send)
