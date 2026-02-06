@@ -154,8 +154,6 @@ def _apply_fastmcp_accept_header_patch():
 
 
 # Apply patch at module import time
-import logging
-
 logger = logging.getLogger(__name__)
 _patch_applied = _apply_fastmcp_accept_header_patch()
 if _patch_applied:
