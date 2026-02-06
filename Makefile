@@ -328,4 +328,3 @@ version:
 versions:
 	@echo "Available versions:"
 	@git tag -l "v*" | sort -V
-
